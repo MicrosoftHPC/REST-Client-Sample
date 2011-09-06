@@ -4,16 +4,33 @@ Introduction
 	This is the sample code to work with SOA feature on Windows HPC cluster 
 	through REST API.
 
+Licensing
+=========
+
+	Please see the file called LICENSE.
+  
 Prerequisites
 =============
 
-
-How to build
-============
-
+	There is no prerequisite for Java client. The code is tested with JDK 1.6.
 	
-How to use
-==========
+	For C client (under src\cpp\SoaWebApiClient), libcurl and json-c is
+	needed. The code has been compiled and tested on Fedora with the following 
+	library:
+	
+		libcurl-7.21.3-8.fc15.x86_64
+		libcurl-devel-7.21.3-8.fc15.x86_64
+		json-c-0.9-2.fc15.x86_64
+		json-c-devel-0.9-2.fc15.x86_64
 
-	Refer to document under each directory.
+How to build and use
+====================
+
+	To build/run Java client, go to src\java\SoaWebApiClient\src, and run 
+	"sh RunTest.sh src" (or RunTest.cmd if you are on Windows).
+	
+	To build/run C client, go to src\cpp\SoaWebApiClient. Type "make". And
+	follow the instruction of "soaclient -?".
+	
+	
 	
