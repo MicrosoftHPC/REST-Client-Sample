@@ -1,6 +1,6 @@
 #include "soaclient.h"
 
-const char SESSIONIDTOKEN[] = "SessionId";
+const char SESSIONIDTOKEN[] = "Id";
 const char BROKERNODE[] = "BrokerNode";
 
 char USERPWD[1024];

@@ -125,11 +125,11 @@ public class SoaWebApiClient {
                 } 
             } while( len >= 0);
             System.out.println(String.format("WebSessionInfo %s", sb.toString()));
-            Pattern pattern = Pattern.compile("\"MaxMessageSize\":(\\d+),\"Secure\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*),\"SessionId\":(\\d+),\"TransportScheme\":(\\d+),\"UseInprocessBroker\":(.*),\"BrokerNode\":\"(.*)\",\"IsDurable\":(.*)");
+            Pattern pattern = Pattern.compile("\"Id\":(\\d+),\"Secure\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*),\"TransportScheme\":(\\d+),\"UseInprocessBroker\":(.*),\"BrokerNode\":\"(.*)\",\"IsDurable\":(.*)");
             Matcher matcher = pattern.matcher(sb.toString());
             if(matcher.find()) {
-                this.sessionId = Integer.parseInt(matcher.group(5));
-		this.brokernode = matcher.group(8);
+                this.sessionId = Integer.parseInt(matcher.group(1));
+		this.brokernode = matcher.group(7);
 		System.out.println(String.format("brokernode: %s", this.brokernode));
             }
             System.out.println(String.format("Session %d is created successfully!", this.sessionId));
