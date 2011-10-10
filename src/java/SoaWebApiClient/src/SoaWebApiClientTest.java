@@ -11,12 +11,12 @@ public class SoaWebApiClientTest {
     private static String servicename = "CcpEchoSvc";
     
     public static void main(String[] args) {
-//        runBasicTest();
+        runBasicTest();
         runMultiBatchTest();
-//        runPartialSendRequestTest();
-//        runPartialSendRequestTest2();
-//        runPartialGetResponseTest();
-//        runAttachSessionTest();
+        runPartialSendRequestTest();
+        runPartialSendRequestTest2();
+        runPartialGetResponseTest();
+        runAttachSessionTest();
     }
     
     private static void runBasicTest() {
