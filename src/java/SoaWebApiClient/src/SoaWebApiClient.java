@@ -165,6 +165,7 @@ public class SoaWebApiClient {
             closeSession.setRequestMethod("POST");
             closeSession.setRequestProperty("Authorization", "Basic "
                     + this.basicauthinfo);
+            closeSession.setRequestProperty("Accept", "application/json");
             closeSession.setRequestProperty(ApiVersionName, ApiVersionValue);
             closeSession.setDoOutput(true);
 
@@ -202,6 +203,7 @@ public class SoaWebApiClient {
             attachSession.setRequestProperty("Accept", "application/json");
             attachSession.setRequestProperty("CONTENT-TYPE",
                     "application/json; charset=utf-8");
+            attachSession.setRequestProperty("Accept", "application/json");
             attachSession.setRequestProperty(ApiVersionName, ApiVersionValue);
             attachSession.setDoInput(true);
             attachSession.setReadTimeout(120000);
