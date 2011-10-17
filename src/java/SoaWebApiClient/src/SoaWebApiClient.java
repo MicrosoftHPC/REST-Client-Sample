@@ -467,6 +467,10 @@ public class SoaWebApiClient {
     public int getSessionId() {
         return this.sessionId;
     }
+    
+    public void setSessionId(int sessionId) {
+        this.sessionId = sessionId;
+    }
 
     private TrustManager[] getTrustManager() {
         TrustManager[] certs = new TrustManager[] { new X509TrustManager() {
