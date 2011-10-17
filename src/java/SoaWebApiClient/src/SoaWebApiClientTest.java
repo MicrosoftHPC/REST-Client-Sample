@@ -5,7 +5,7 @@ import java.util.List;
 
 public class SoaWebApiClientTest {
     
-    private static String headnode = "newang1.cloudapp.net";
+    private static String headnode = "newang2.cloudapp.net";
     private static String username = "admin";
     private static String password = "!!123abc";
     private static String servicename = "CcpEchoSvc";
@@ -24,6 +24,7 @@ public class SoaWebApiClientTest {
         String[] userdata = { "UserData1", "UserData2", "UserData3" };
         String response = null;
         SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+
         try {
             client.createSession();
             client.sendRequest(requests, userdata);
@@ -35,6 +36,7 @@ public class SoaWebApiClientTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
             System.out.println("runBasicTest failed");
+            return;
         }
         System.out.println("runBasicTest passed");
     }
@@ -64,6 +66,7 @@ public class SoaWebApiClientTest {
         } catch (Throwable e) {
             e.printStackTrace();
             System.out.println("runPartialSendRequestTest failed");
+            return;
         }
         System.out.println("runPartialSendRequestTest passed");
     }
@@ -94,6 +97,7 @@ public class SoaWebApiClientTest {
         } catch (Throwable e) {
             e.printStackTrace();
             System.out.println("runPartialSendRequestTest2 failed");
+            return;
         }
         System.out.println("runPartialSendRequestTest2 passed");
     }
@@ -116,6 +120,7 @@ public class SoaWebApiClientTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
             System.out.println("runMultiBatchTest failed");
+            return;
         }
         System.out.println("runMultiBatchTest passed");
     }
@@ -145,6 +150,7 @@ public class SoaWebApiClientTest {
         } catch (Throwable e) {
             e.printStackTrace();
             System.out.println("runPartialGetResponseTest failed");
+            return;
         }
         System.out.println("runPartialGetResponseTest passed");
     }
@@ -159,6 +165,7 @@ public class SoaWebApiClientTest {
         } catch (Throwable e) {
             e.printStackTrace();
             System.out.println("runAttachSessionTest failed");
+            return;
         }
         System.out.println("runAttachSessionTest passed");
     }
