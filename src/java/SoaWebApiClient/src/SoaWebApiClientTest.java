@@ -5,7 +5,7 @@ import java.util.List;
 
 public class SoaWebApiClientTest {
     
-    private static String headnode = "newang2.cloudapp.net";
+    private static String headnode = "soatest.cloudapp.net";
     private static String username = "admin";
     private static String password = "!!123abc";
     private static String servicename = "CcpEchoSvc";

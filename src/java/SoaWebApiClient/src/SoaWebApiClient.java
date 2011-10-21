@@ -35,7 +35,7 @@ public class SoaWebApiClient {
     private String basicauthinfo;
     private String userdataSeparator;
     private String responseSeparator;
-    private boolean traceFlag = true;
+    private boolean traceFlag = false;
     private int sessionId = -1;
 
 
@@ -85,7 +85,7 @@ public class SoaWebApiClient {
         int responseCode = -1;
         try {
             url = new URL(String.format(
-                    "https://%s/SOA/sessions/Create?durable=false",
+                    "https://%s/WindowsHPC/HPCCluster/sessions/Create?durable=false",
                     this.headnode));
         } catch (MalformedURLException e) {
             // TODO Auto-generated catch block
@@ -159,7 +159,7 @@ public class SoaWebApiClient {
         HttpsURLConnection closeSession = null;
         int responseCode = -1;
         try {
-            url = new URL(String.format("https://%s/SOA/sessions/%d/Close",
+            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/Close",
                     this.headnode, this.sessionId));
             closeSession = (HttpsURLConnection) url.openConnection();
             closeSession.setRequestMethod("POST");
@@ -194,7 +194,7 @@ public class SoaWebApiClient {
         trace("Try to attach session %d...", attachSessionId);
         try {
             url = new URL(String.format(
-                    "https://%s/SOA/sessions/%d/Attach?durable=false",
+                    "https://%s/WindowsHPC/HPCCluster/session/%d/Attach?durable=false",
                     this.headnode, attachSessionId));
             attachSession = (HttpsURLConnection) url.openConnection();
             attachSession.setRequestMethod("GET");
@@ -255,7 +255,7 @@ public class SoaWebApiClient {
         try {
             url = new URL(
                     String.format(
-                            "https://%s/SOA/sessions/%d/batches/%s?genericservice=true&commit=%b",
+                            "https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s?genericservice=true&commit=%b",
                             this.brokernode, this.sessionId, batchId, commit));
             trace(url.toString());
         } catch (MalformedURLException e1) {
@@ -274,6 +274,7 @@ public class SoaWebApiClient {
             sendRequest.setRequestProperty("Accept", "application/json");
             sendRequest.setRequestProperty(ApiVersionName, ApiVersionValue);
             sendRequest.setDoOutput(true);
+            sendRequest.setDoInput(true);
             sendRequest.setReadTimeout(60000);
             sendRequest.connect();
             OutputStreamWriter out = new OutputStreamWriter(
@@ -318,7 +319,7 @@ public class SoaWebApiClient {
         try {
             url = new URL(
                     String.format(
-                            "https://%s/SOA/sessions/%d/batches/%s/Response?genericservice=true&action=%s&clientdata=%s&count=%d&reset=%b",
+                            "https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Response?genericservice=true&action=%s&clientdata=%s&count=%d&reset=%b",
                             this.brokernode, this.sessionId, batchId, action, clientdata, count, startFromBenginning));
         } catch (MalformedURLException e1) {
             // TODO Auto-generated catch block
@@ -368,10 +369,10 @@ public class SoaWebApiClient {
         URL url = null;
         HttpsURLConnection endRequests = null;
         int responseCode = -1;
-        System.out.println(String.format("Batch %s end requests...", batchId));
+        trace("Batch %s end requests...", batchId);
         
         try {
-            url = new URL(String.format("https://%s/SOA/sessions/%d/batches/%s/Commit", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Commit", this.headnode, sessionId, batchId));
             endRequests = (HttpsURLConnection) url.openConnection();
             endRequests.setRequestMethod("POST");
             endRequests.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
@@ -383,7 +384,7 @@ public class SoaWebApiClient {
             out.close();
             
             responseCode = endRequests.getResponseCode();
-            System.out.println(String.format("Batch %s commited. %d", batchId, responseCode));
+            trace("Batch %s commited. %d", batchId, responseCode);
         } catch (MalformedURLException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -408,9 +409,9 @@ public class SoaWebApiClient {
         URL url = null;
         HttpsURLConnection purgeClient = null;
         int responseCode = -1;
-        System.out.println(String.format("Purge batch %s ...", batchId));
+        trace("Purge batch %s ...", batchId);
         try {
-            url = new URL(String.format("https://%s/SOA/sessions/%d/batches/%s/Purge", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Purge", this.headnode, sessionId, batchId));
             purgeClient = (HttpsURLConnection) url.openConnection();
             purgeClient.setRequestMethod("POST");
             purgeClient.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
@@ -446,7 +447,7 @@ public class SoaWebApiClient {
         String batchStatus = null;
         int responseCode = -1;
         try {
-            url = new URL(String.format("https://%s/SOA/sessions/%d/batches/%s/Status", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Status", this.headnode, sessionId, batchId));
             getBatchStatus = (HttpsURLConnection) url.openConnection();
             getBatchStatus.setRequestMethod("GET");
             getBatchStatus.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
