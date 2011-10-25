@@ -2,6 +2,7 @@
 
 const char SESSIONIDTOKEN[] = "Id";
 const char BROKERNODE[] = "BrokerNode";
+const char APIVERSION[] = "api-version: 2011-11";
 
 char USERPWD[1024];
 char USERNAME[1024];
@@ -113,7 +114,7 @@ int create_session()
 	char data[1024];
 	/* JSON requires double escape */
 	username = replace_str(USERNAME, "\\", "\\\\");
-	sprintf(data, "{\"ServiceName\":\"MyGenericService\",\"Username\":\"%s\",\"Password\":\"%s\",\"MaxMessageSize\":2147483647,\"Runtime\":-1}", username, PASSWORD);
+	sprintf(data, "{\"ServiceName\":\"CcpEchoSvc\",\"Username\":\"%s\",\"Password\":\"%s\",\"MaxMessageSize\":2147483647,\"Runtime\":-1}", username, PASSWORD);
 	printf("create_session: data = %s\n", data);
 	struct HttpRequest request;
 	request.readptr = data;
@@ -123,7 +124,7 @@ int create_session()
 	init_httpresponse(&response);
 
 	char url[1024];
-	sprintf(url, "https://%s/SOA/sessions/Create?durable=false", HOSTNAME);
+	sprintf(url, "https://%s/WindowsHPC/HPCCluster/sessions/Create?durable=false", HOSTNAME);
 
 	curl = curl_easy_init();
 	if(curl) 
@@ -150,6 +151,8 @@ int create_session()
 		chunk = curl_slist_append(chunk, "Transfer-Encoding: chunked");
 		chunk = curl_slist_append(chunk, "CONTENT-TYPE: application/json; charset=utf-8");
 		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+
 		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
 		res = curl_easy_perform(curl);
@@ -179,12 +182,13 @@ void close_session(int session_id)
 
 	curl = curl_easy_init();
 	char url[1024];
-	sprintf(url, "https://%s/SOA/sessions/%d/Close", HOSTNAME, session_id);
+	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/Close", HOSTNAME, session_id);
 	printf("%s\n", url);
 	if(curl)
 	{
 		printf("begin to close session\n");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 #ifdef _CURL_SSL_PEERVERIFICATION
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #endif
@@ -194,6 +198,11 @@ void close_session(int session_id)
 #ifdef _CURLDEBUG
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 #endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
 		config_proxy(curl);
 
@@ -234,7 +243,7 @@ void send_request(int session_id, char **requests, char **userdata, int count)
 
 	curl = curl_easy_init();
 	char url[1024];
-	sprintf(url, "https://%s/SOA/sessions/%d/batches/batchid?genericservice=true", BROKERADDR, session_id);
+	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/batch/batchid?genericservice=true&commit=true", BROKERADDR, session_id);
 	printf("%s\n", url);
 	/* construct request */
 	char *content = malloc(10240);
@@ -266,6 +275,8 @@ void send_request(int session_id, char **requests, char **userdata, int count)
 		struct curl_slist *chunk = NULL;
 		chunk = curl_slist_append(chunk, "Transfer-Encoding: chunked");
 		chunk = curl_slist_append(chunk, "CONTENT-TYPE: application/octet-stream");
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
 		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
 		res = curl_easy_perform(curl);
@@ -281,8 +292,8 @@ void get_response(int session_id)
 	CURLcode res;
 
 	char url[1024];
-	sprintf(url, "https://%s/SOA/sessions/%d/batches/batchid?genericservice=true", BROKERADDR, session_id);
-
+	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/batch/batchid/Response?genericservice=true", BROKERADDR, session_id);
+	printf("%s\n", url);
 	struct HttpResponse response;
 	init_httpresponse(&response);
 
@@ -294,6 +305,7 @@ void get_response(int session_id)
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 #endif
 
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
@@ -303,6 +315,12 @@ void get_response(int session_id)
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
 		config_proxy(curl);
+
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
 		res = curl_easy_perform(curl);
 		printf("result %d\n", res);
