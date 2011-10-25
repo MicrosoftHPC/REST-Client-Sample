@@ -23,9 +23,10 @@ public class SoaWebApiClientTest {
         String[] requests = { "Request1", "Request2", "Request3" };
         String[] userdata = { "UserData1", "UserData2", "UserData3" };
         String response = null;
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client = null;
 
         try {
+            client = new SoaWebApiClient(headnode, servicename, username, password);
             client.createSession();
             client.sendRequest(requests, userdata);
             client.getBatchStatus();
@@ -45,8 +46,9 @@ public class SoaWebApiClientTest {
         String response = null;
         List<String> requests = new ArrayList<String>();
         List<String> userdata = new ArrayList<String>();
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client = null;
         try {
+            client = new SoaWebApiClient(headnode, servicename, username, password);
             client.createSession();
             for(int i = 0; i < 10; i++) {
                 requests.clear();
@@ -76,8 +78,9 @@ public class SoaWebApiClientTest {
         int partialSendCount = 10;
         List<String> requests = new ArrayList<String>();
         List<String> userdata = new ArrayList<String>();
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client = null;
         try {
+            client = new SoaWebApiClient(headnode, servicename, username, password);
             client.createSession();
             for(int i = 0; i < partialSendCount; i++) {
                 requests.clear();
@@ -106,8 +109,9 @@ public class SoaWebApiClientTest {
         String[] requests = { "Request1", "Request2", "Request3" };
         String[] userdata = { "UserData1", "UserData2", "UserData3" };
         String response = null;
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client = null;
         try {
+            client = new SoaWebApiClient(headnode, servicename, username, password);
             client.createSession();
             client.sendRequest(requests, userdata, "batch1");
             response = client.getResponse("batch1");
@@ -135,8 +139,9 @@ public class SoaWebApiClientTest {
             requests.add(String.format("Request%d", i));
             userdata.add(String.format("UserData%d", i));
         }
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client= null;
         try {
+            client = client = new SoaWebApiClient(headnode, servicename, username, password);
             client.createSession();
             client.sendRequest(requests.toArray(new String[0]), 
                     userdata.toArray(new String[0]));
@@ -156,9 +161,11 @@ public class SoaWebApiClientTest {
     }
     
     private static void runAttachSessionTest() {
-        SoaWebApiClient client = new SoaWebApiClient(headnode, servicename, username, password);
-        SoaWebApiClient client2 = new SoaWebApiClient(headnode, servicename, username, password);
+        SoaWebApiClient client = null;
+        SoaWebApiClient client2 = null;
         try {
+            client = new SoaWebApiClient(headnode, servicename, username, password);
+            client2 = new SoaWebApiClient(headnode, servicename, username, password);
             int sessionId = client.createSession();
             client2.attachSession(sessionId);
             client2.closeSession();

@@ -29,6 +29,7 @@ public class SoaWebApiClient {
     
     private String headnode;
     private String brokernode;
+    private String clustername;
     private String username;
     private String password;
     private String servicename;
@@ -40,16 +41,18 @@ public class SoaWebApiClient {
 
 
     public SoaWebApiClient(String headnode, String servicename,
-            String username, String password) {
+            String username, String password) throws Throwable {
         this.headnode = headnode;
         this.servicename = servicename;
         this.username = username;
         this.password = password;
-
+        
         String plainauth = String.format("%s:%s", this.username, this.password);
         this.basicauthinfo = new sun.misc.BASE64Encoder().encode(plainauth
                 .getBytes());
 
+        
+        
         SSLContext sc;
         try {
             sc = SSLContext.getInstance("SSL");
@@ -70,13 +73,14 @@ public class SoaWebApiClient {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        
         char[] tmpArrayA = { (char) Integer.parseInt("EF", 16),
                 (char) Integer.parseInt("BF", 16),
                 (char) Integer.parseInt("BF", 16), };
         char[] tmpArrayB = { (char) Integer.parseInt("00", 16) };
         userdataSeparator = new String(tmpArrayA);
         responseSeparator = new String(tmpArrayB);
-
+        this.clustername = getClusterName();
     }
 
     public int createSession() throws Throwable {
@@ -85,8 +89,8 @@ public class SoaWebApiClient {
         int responseCode = -1;
         try {
             url = new URL(String.format(
-                    "https://%s/WindowsHPC/HPCCluster/sessions/Create?durable=false",
-                    this.headnode));
+                    "https://%s/WindowsHPC/%s/sessions/Create?durable=false",
+                    this.headnode, this.clustername));
         } catch (MalformedURLException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -133,11 +137,11 @@ public class SoaWebApiClient {
             String response = getResponseString(createSession.getInputStream());
             trace(String.format("WebSessionInfo %s", response));
             Pattern pattern = Pattern
-                    .compile("\"Id\":(\\d+),\"Secure\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*),\"TransportScheme\":(\\d+),\"UseInprocessBroker\":(.*),\"BrokerNode\":\"(.*)\",\"IsDurable\":(.*)");
+                    .compile("\"BrokerNode\":\"(.*)\",\"Id\":(\\d+),\"IsDurable\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*)");
             Matcher matcher = pattern.matcher(response);
             if (matcher.find()) {
-                this.sessionId = Integer.parseInt(matcher.group(1));
-                this.brokernode = matcher.group(7);
+                this.sessionId = Integer.parseInt(matcher.group(2));
+                this.brokernode = matcher.group(1);
                 trace("brokernode: %s", this.brokernode);
             }
             responseCode = createSession.getResponseCode();
@@ -159,8 +163,8 @@ public class SoaWebApiClient {
         HttpsURLConnection closeSession = null;
         int responseCode = -1;
         try {
-            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/Close",
-                    this.headnode, this.sessionId));
+            url = new URL(String.format("https://%s/WindowsHPC/%s/session/%d/Close",
+                    this.headnode, this.clustername, this.sessionId));
             closeSession = (HttpsURLConnection) url.openConnection();
             closeSession.setRequestMethod("POST");
             closeSession.setRequestProperty("Authorization", "Basic "
@@ -194,8 +198,8 @@ public class SoaWebApiClient {
         trace("Try to attach session %d...", attachSessionId);
         try {
             url = new URL(String.format(
-                    "https://%s/WindowsHPC/HPCCluster/session/%d/Attach?durable=false",
-                    this.headnode, attachSessionId));
+                    "https://%s/WindowsHPC/%s/session/%d/Attach?durable=false",
+                    this.headnode, this.clustername, attachSessionId));
             attachSession = (HttpsURLConnection) url.openConnection();
             attachSession.setRequestMethod("GET");
             attachSession.setRequestProperty("Authorization", "Basic "
@@ -211,11 +215,11 @@ public class SoaWebApiClient {
             websessionInfo = getResponseString(attachSession.getInputStream());
             trace(websessionInfo);
             Pattern pattern = Pattern
-            .compile("\"Id\":(\\d+),\"Secure\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*),\"TransportScheme\":(\\d+),\"UseInprocessBroker\":(.*),\"BrokerNode\":\"(.*)\",\"IsDurable\":(.*)");
+            .compile("\"BrokerNode\":\"(.*)\",\"Id\":(\\d+),\"IsDurable\":(.*),\"ServiceOperationTimeout\":(\\d+),\"ServiceVersion\":(.*)");
             Matcher matcher = pattern.matcher(websessionInfo);
             if (matcher.find()) {
-                this.sessionId = Integer.parseInt(matcher.group(1));
-                this.brokernode = matcher.group(7);
+                this.sessionId = Integer.parseInt(matcher.group(2));
+                this.brokernode = matcher.group(1);
                 trace("brokernode: %s", this.brokernode);
             }
             responseCode = attachSession.getResponseCode();
@@ -255,8 +259,8 @@ public class SoaWebApiClient {
         try {
             url = new URL(
                     String.format(
-                            "https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s?genericservice=true&commit=%b",
-                            this.brokernode, this.sessionId, batchId, commit));
+                            "https://%s/WindowsHPC/%s/session/%d/batch/%s?genericservice=true&commit=%b",
+                            this.brokernode, this.clustername, this.sessionId, batchId, commit));
             trace(url.toString());
         } catch (MalformedURLException e1) {
             // TODO Auto-generated catch block
@@ -319,8 +323,8 @@ public class SoaWebApiClient {
         try {
             url = new URL(
                     String.format(
-                            "https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Response?genericservice=true&action=%s&clientdata=%s&count=%d&reset=%b",
-                            this.brokernode, this.sessionId, batchId, action, clientdata, count, startFromBenginning));
+                            "https://%s/WindowsHPC/%s/session/%d/batch/%s/Response?genericservice=true&action=%s&clientdata=%s&count=%d&reset=%b",
+                            this.brokernode, this.clustername, this.sessionId, batchId, action, clientdata, count, startFromBenginning));
         } catch (MalformedURLException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
@@ -372,7 +376,7 @@ public class SoaWebApiClient {
         trace("Batch %s end requests...", batchId);
         
         try {
-            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Commit", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/%s/session/%d/batch/%s/Commit", this.headnode, this.clustername, sessionId, batchId));
             endRequests = (HttpsURLConnection) url.openConnection();
             endRequests.setRequestMethod("POST");
             endRequests.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
@@ -411,7 +415,7 @@ public class SoaWebApiClient {
         int responseCode = -1;
         trace("Purge batch %s ...", batchId);
         try {
-            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Purge", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/%s/session/%d/batch/%s/Purge", this.headnode, this.clustername, sessionId, batchId));
             purgeClient = (HttpsURLConnection) url.openConnection();
             purgeClient.setRequestMethod("POST");
             purgeClient.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
@@ -447,7 +451,7 @@ public class SoaWebApiClient {
         String batchStatus = null;
         int responseCode = -1;
         try {
-            url = new URL(String.format("https://%s/WindowsHPC/HPCCluster/session/%d/batch/%s/Status", this.headnode, sessionId, batchId));
+            url = new URL(String.format("https://%s/WindowsHPC/%s/session/%d/batch/%s/Status", this.headnode, this.clustername, sessionId, batchId));
             getBatchStatus = (HttpsURLConnection) url.openConnection();
             getBatchStatus.setRequestMethod("GET");
             getBatchStatus.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
@@ -479,6 +483,43 @@ public class SoaWebApiClient {
         }
         throwIfError(responseCode, "GetBatchStatus failed");
         return batchStatus;
+    }
+    
+    public String getClusterName() throws Throwable {
+        String cluster = null;
+        URL url = null;
+        HttpsURLConnection getCluster = null;
+        int responseCode = -1;
+        trace("Trying to get cluster name");
+        try {
+            url = new URL(String.format("https://%s/WindowsHPC/Clusters", this.headnode));
+            getCluster = (HttpsURLConnection)url.openConnection();
+            getCluster.setRequestMethod("GET");
+            getCluster.setRequestProperty("Authorization", "Basic " + this.basicauthinfo);
+            getCluster.setRequestProperty(ApiVersionName, ApiVersionValue);
+            getCluster.setDoInput(true);
+            getCluster.setReadTimeout(120000);
+            
+            String response = getResponseString(getCluster.getInputStream());
+            Pattern pattern = Pattern.compile("<Value>(.*)</Value>");
+            Matcher matcher = pattern.matcher(response);
+            if (matcher.find()) {
+                cluster = matcher.group(1);
+                trace("clustername: %s", cluster);
+            }
+            trace("getCluster response: %s", response);
+            responseCode = getCluster.getResponseCode();
+        } catch (MalformedURLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+            trace(getResponseString(getCluster.getErrorStream()));
+            throw e1;
+        }
+        throwIfError(responseCode, "GetCluster failed");
+        return cluster;
     }
     
     public int getSessionId() {
