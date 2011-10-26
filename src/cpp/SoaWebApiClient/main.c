@@ -12,12 +12,29 @@ int runbasictest(char *hostname, char *username, char *password)
 	if(session_id < 0)
 	{
 		fprintf(stderr, "create_session() failed\n");
-		return 1;
+		return -1;
 	}
 	send_request(session_id, &requests[0], &userdata[0], 3);
 	get_response(session_id);
 	close_session(session_id);
 	printf("BasicTest passed\n");
+	return 0;
+}
+
+int runattachsessiontest(char *hostname, char *username, char *password)
+{
+	int session_id = -1;
+	init_client(hostname, username, password);
+	session_id = create_session();
+	if(session_id < 0)
+	{
+		fprintf(stderr, "create_session() failed\n");
+		return -1;
+	}
+	attach_session(session_id);
+	close_session(session_id);
+	printf("AttachSessionTest passed\n");
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -49,6 +66,7 @@ int main(int argc, char **argv)
 
 	hostname = argv[optind];
 
-	runbasictest(hostname, username, password);
+//	runbasictest(hostname, username, password);
+	runattachsessiontest(hostname, username, password);
 	return 0;
 }

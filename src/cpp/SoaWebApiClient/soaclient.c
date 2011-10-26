@@ -175,6 +175,57 @@ int create_session()
 	return session_id;
 }
 
+void attach_session(int session_id)
+{
+	CURL *curl;
+	CURLcode res;
+
+	curl = curl_easy_init();
+
+	struct HttpResponse response;
+	init_httpresponse(&response);
+
+	char url[1024];
+	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/Attach?durable=false", HOSTNAME, session_id);
+	printf("%s\n", url);
+	if(curl)
+	{
+		printf("begin to attach session\n");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+#ifdef _CURL_SSL_PEERVERIFICATION
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+#endif
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
+
+#ifdef _CURLDEBUG
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		config_proxy(curl);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		printf("result code: %d\n", res);
+	}
+	/* Parse session id */
+	const char *str_sessionid;
+	str_sessionid = get_property(response.writeptr, SESSIONIDTOKEN);
+	session_id = atoi(str_sessionid);
+	printf("session %d is attached successfully\n", session_id);
+	const char *broker_addr;
+	broker_addr = get_property(response.writeptr, BROKERNODE);
+	strncpy(BROKERADDR, broker_addr + 1, strlen(broker_addr) - 2); // trim double quote
+	printf("broker node: %s\n", BROKERADDR);
+}
+
 void close_session(int session_id)
 {
 	CURL *curl;
