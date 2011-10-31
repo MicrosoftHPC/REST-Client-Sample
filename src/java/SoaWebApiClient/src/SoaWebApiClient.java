@@ -24,7 +24,7 @@ import javax.net.ssl.X509TrustManager;
 public class SoaWebApiClient {
 
     private final String ApiVersionName = "api-version";
-    private final String ApiVersionValue = "2011-11";
+    private final String ApiVersionValue = "2011-11-01";
     private final String defaultBatchId = "DEFAULTBATCHID";
     
     private String headnode;
@@ -36,7 +36,7 @@ public class SoaWebApiClient {
     private String basicauthinfo;
     private String userdataSeparator;
     private String responseSeparator;
-    private boolean traceFlag = false;
+    private boolean traceFlag = true;
     private int sessionId = -1;
 
 
