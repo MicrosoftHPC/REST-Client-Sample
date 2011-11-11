@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <locale.h>
+#include <regex.h>
 #include <curl/curl.h>
 #include <json/json.h>
 
@@ -51,8 +53,22 @@ int create_session();
 void close_session(int session_id);
 
 /* Send requests w/ userdata to a SOA session */
-void send_request(int session_id, char **requests, char **userdata, int count);
+void send_request(int session_id, char *batchid, char **requests, char **userdata, int count, bool commit);
 
 /* Get response from a SOA session */
-void get_response(int session_id);
+void get_response(int session_id, char *batchid, char *action, char *clientdata, int count, bool reset);
+
+/* End requests after sending requests operation is completed */
+void end_requests(int sessionid, char *batchid);
+
+/* Purge batch after retrieving response operation is completed */
+void purge_batch(int session_id, char *batch_id);
+
+/* Get current batch status */
+char *get_batchstatus(int session_id, char *batch_id);
+
+/* Get cluster name */
+char *get_clustername();
+
+
 

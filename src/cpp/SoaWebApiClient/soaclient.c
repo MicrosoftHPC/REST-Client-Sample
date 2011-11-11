@@ -2,13 +2,14 @@
 
 const char SESSIONIDTOKEN[] = "Id";
 const char BROKERNODE[] = "BrokerNode";
-const char APIVERSION[] = "api-version: 2011-11";
+const char APIVERSION[] = "api-version: 2011-11-01";
 
 char USERPWD[1024];
 char USERNAME[1024];
 char PASSWORD[1024];
 char HOSTNAME[1024];
 char BROKERADDR[1024];
+char *CLUSTERNAME;
 
 const char *get_property(const char *jsonstr, const char *name)
 {
@@ -41,6 +42,7 @@ int init_client(const char *hostname, const char *username, const char *password
 	strncpy(PASSWORD,  password, strlen(password));
 	strncpy(HOSTNAME, hostname, strlen(hostname));
 	create_authinfo(username, password);
+	CLUSTERNAME = get_clustername();
 	return err;
 }
 
@@ -124,7 +126,7 @@ int create_session()
 	init_httpresponse(&response);
 
 	char url[1024];
-	sprintf(url, "https://%s/WindowsHPC/HPCCluster/sessions/Create?durable=false", HOSTNAME);
+	sprintf(url, "https://%s/WindowsHPC/%s/sessions/Create?durable=false", HOSTNAME, CLUSTERNAME);
 
 	curl = curl_easy_init();
 	if(curl) 
@@ -186,7 +188,7 @@ void attach_session(int session_id)
 	init_httpresponse(&response);
 
 	char url[1024];
-	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/Attach?durable=false", HOSTNAME, session_id);
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/Attach?durable=false", HOSTNAME, CLUSTERNAME, session_id);
 	printf("%s\n", url);
 	if(curl)
 	{
@@ -233,7 +235,7 @@ void close_session(int session_id)
 
 	curl = curl_easy_init();
 	char url[1024];
-	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/Close", HOSTNAME, session_id);
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/Close", HOSTNAME, CLUSTERNAME, session_id);
 	printf("%s\n", url);
 	if(curl)
 	{
@@ -285,7 +287,7 @@ int construct_request(char **requests, char **userdata, int count, char *content
 	return totallen;
 }
 
-void send_request(int session_id, char **requests, char **userdata, int count)
+void send_request(int session_id, char *batchid, char **requests, char **userdata, int count, bool commit)
 {
 	CURL *curl;
 	CURLcode res;
@@ -294,7 +296,7 @@ void send_request(int session_id, char **requests, char **userdata, int count)
 
 	curl = curl_easy_init();
 	char url[1024];
-	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/batch/batchid?genericservice=true&commit=true", BROKERADDR, session_id);
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/batch/%s?genericservice=true&commit=%s", BROKERADDR, CLUSTERNAME, session_id, batchid, commit? "true" : "false");
 	printf("%s\n", url);
 	/* construct request */
 	char *content = malloc(10240);
@@ -337,13 +339,13 @@ void send_request(int session_id, char **requests, char **userdata, int count)
 	}
 }
 
-void get_response(int session_id)
+void get_response(int session_id, char *batchid, char *action, char *clientdata, int count, bool reset)
 {
 	CURL *curl;
 	CURLcode res;
 
 	char url[1024];
-	sprintf(url, "https://%s/WindowsHPC/HPCCluster/session/%d/batch/batchid/Response?genericservice=true", BROKERADDR, session_id);
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/batch/%s/Response?genericservice=true&action=%s&clientdata=%s&count=%d&reset=%s", BROKERADDR, CLUSTERNAME, session_id, batchid, action, clientdata, count, reset ? "true" : "false");
 	printf("%s\n", url);
 	struct HttpResponse response;
 	init_httpresponse(&response);
@@ -406,4 +408,180 @@ void get_response(int session_id)
 	}
 }
 
+void end_requests(int session_id, char *batch_id)
+{
+	CURL *curl;
+	CURLcode res;
 
+	char url[1024];
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/batch/%s/Commit", BROKERADDR, CLUSTERNAME, session_id, batch_id);
+	printf("%s\n", url);
+
+	curl = curl_easy_init();
+	if(curl) 
+	{ 
+		printf("begin to end requests\n");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+#ifdef _CURL_SSL_PEERVERIFICATION
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+#endif
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
+
+#ifdef _CURLDEBUG
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		config_proxy(curl);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		printf("result code: %d\n", res);
+	}
+}
+
+void purge_batch(int session_id, char *batch_id)
+{
+	CURL *curl;
+	CURLcode res;
+
+	char url[1024];
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/batch/%s/Purge", BROKERADDR, CLUSTERNAME, session_id, batch_id);
+	printf("%s\n", url);
+
+	curl = curl_easy_init();
+	if(curl) 
+	{ 
+		printf("begin to purge batch %s\n", batch_id);
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+#ifdef _CURL_SSL_PEERVERIFICATION
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+#endif
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
+
+#ifdef _CURLDEBUG
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		chunk = curl_slist_append(chunk, "Content-Length: 0");
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		config_proxy(curl);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		printf("result code: %d\n", res);
+	}
+}
+
+char *get_batchstatus(int session_id, char *batch_id)
+{
+	CURL *curl;
+	CURLcode res;
+
+	curl = curl_easy_init();
+
+	struct HttpResponse response;
+	init_httpresponse(&response);
+
+	char url[1024];
+	sprintf(url, "https://%s/WindowsHPC/%s/session/%d/batch/%s/Status", BROKERADDR, CLUSTERNAME, session_id, batch_id);
+	printf("%s\n", url);
+	if(curl)
+	{
+		printf("begin to get batch %s status\n", batch_id);
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+#ifdef _CURL_SSL_PEERVERIFICATION
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+#endif
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
+
+#ifdef _CURLDEBUG
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, "Accept: application/json");
+		chunk = curl_slist_append(chunk, APIVERSION);
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		config_proxy(curl);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		printf("result code: %d\n", res);
+	}
+	printf("batch %s status: %s\n", batch_id, response.writeptr);
+	return response.writeptr;
+}
+
+
+char *get_clustername()
+{
+	CURL *curl;
+	CURLcode res;
+
+	curl = curl_easy_init();
+
+	struct HttpResponse response;
+	init_httpresponse(&response);
+
+	char url[1024];
+	sprintf(url, "https://%s/WindowsHPC/Clusters", HOSTNAME);
+	printf("%s\n", url);
+	if(curl)
+	{
+		printf("begin to get cluster name\n");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+#ifdef _CURL_SSL_PEERVERIFICATION
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+#endif
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, USERPWD);
+
+#ifdef _CURLDEBUG
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
+		struct curl_slist *chunk = NULL;
+		chunk = curl_slist_append(chunk, APIVERSION);
+		res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+		config_proxy(curl);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		printf("result code: %d\n", res);
+	}
+
+	/* try parse the cluster name from return xml message */
+	regex_t regex;
+	int status;
+	int strlen;
+	char *cluster;
+	cluster = malloc(1024);
+	regmatch_t pmatch[10];
+	status = regcomp(&regex, "<Value>([a-zA-Z]{1,100})</Value>", REG_EXTENDED );
+	status = regexec(&regex, response.writeptr, 2, pmatch, 0);
+	strlen = pmatch[1].rm_eo - pmatch[1].rm_so;
+	strncpy(cluster, response.writeptr + pmatch[1].rm_so, strlen);
+	cluster[strlen] = '\0';
+	printf("Cluster name: %s\n", cluster);
+	regfree(&regex);
+	return cluster;
+}
